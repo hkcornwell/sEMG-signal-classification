@@ -1,8 +1,4 @@
-<center>
-    <h1>EMG Classification for Hand Gestures</h1>
-    <h3>Authors: Hayden Cornell, Numaer Zaker</h3>
-</center>
-<hr>
+<h1>EMG Classification for Hand Gestures</h1>
 
 # 1. Problem Statement
 
@@ -29,7 +25,6 @@ It contains two databases containing data of sEMG of various participants doing 
 * Cylindrical
 * Hook
 
-  
 ---
 
 Each row in the dataset represents a single trial of recording sEMG data for the participants. sEMG data is recorded over time, so each column will represent a point in time for each trial. For our analysis, we only focus on the first database which has 5 participants, 6 hand signals, and 12 sensors. Our dataset will be a matrix with 900 data points and 6000 features. 
@@ -60,13 +55,11 @@ The below set of images, from left to right, show how the data is processed to o
 * In the middle, we have the EMG data after taking the absolute value
 * The image on the right is what we use as input to the rest of the analysis for this report.
 
-$$ $$
 <table><tr>
 <td> <img src="./images/data_cleaning1.png" alt="Drawing" style="width: 400px;"/> </td>
 <td> <img src="./images/data_cleaning2.png" alt="Drawing" style="width: 450px;"/> </td>
 <td> <img src="./images/data_cleaning3.png" alt="Drawing" style="width: 450px;"/> </td>    
 </tr></table>
-$$ $$
 
 The smoothing parameters were tuned and visually compared with the raw data to make sure the smoothed curve maintained the data trends while reducing the noise. The best smoothing level was 0.03 and the best smoothing slope is 0.02. The following is an example of a single datapoint after taking the absolute value and smoothing the output:
 
@@ -77,12 +70,10 @@ The smoothing parameters were tuned and visually compared with the raw data to m
 
 Each datapoint has 6000 features where each feature represents a point in time. It's likely the case that many of these features are unlikely to improve the performance of our classification model. More specifically, many of the features will not explain the variance in the classification. Through principal component analysis (PCA), we chose the top components that explained most of the variance in our model. Similarly, we can also use Isomap, which is a nonlinear dimensionality reduction method. Both of these techniques are used with the first 2 components plotted for visual comparison.
 
-$$ $$
 <table><tr>
-<td> <img src="./images/pca.png" alt="Drawing" style="width: 400px;"/> </td>
-<td> <img src="./images/isomap.png" alt="Drawing" style="width: 450px;"/> </td>
+<td> <img src="./images/PCA.png" alt="Drawing" style="width: 400px;"/> </td>
+<td> <img src="./images/Isomap.png" alt="Drawing" style="width: 450px;"/> </td>
 </tr></table>
-$$ $$
 
 The hand images are overlaid to show the hand motion that is associate with each color. As we can see, neither method is a clear "winner" for the dimensionality reduction. This can be expected since we will most likely want to use more than just 2 components for the classification, which is difficult to visualize. Since Isomap is more commonly used for datasets with high dimensionality, the following classification analysis will be done with the Isomap data, using the first 20 components. However, we also build models using 2 components to show the decision boundaries for a few of the models.
 
@@ -93,23 +84,15 @@ For this section, we formulate the equations used to build the model. We also cr
 
 ### Support Vector Machine Classifier
 
-We learned from the class that support vector machines can be used to separate datapoints using a variety of kernels. We believed that SVM would be a good model to try for this problem given that we have 6 different classes with high dimensionality. We formulas the hand gesture classification  problem for SVM as follows:
-
-$$
-\min_{w,b} \vert\vert w \vert\vert ^2 \\
-\text{s.t.} y^i(w^T x^i +b) \geq 1, \forall i 
-$$
+We learned from the class that support vector machines can be used to separate datapoints using a variety of kernels. We believed that SVM would be a good model to try for this problem given that we have 6 different classes with high dimensionality.
 
 In plain English, the formulation maximizes the soft margins between the 6 different hand gestures to minimize the overall training error. The above is the formulation for the linear kernel; but we try a variety of kernel as we suspect much of the features between the different hand gestures may overlap. A different kernel provides more flexibility to these noisy boundaries.
 
 Using the generalized SVM formulation, we used SVM from sklearn to try a variety of parameters and kernels. The visuals were created using an SVM model with 2 PCA components so that we could visualize the decision boundaries. Below are decision boundaries for our model with a variety of parameters:
 
-
-$$ $$
 <table><tr>
 <td> <img src="./images/svm.png" alt="Drawing" style="width: 400px; height:400px"/> </td>
 </tr></table>
-$$ $$
 
 For the best performant model, we stuck with using 20 components from the ISOMAP and hypertuned the parameters. We explored various kernels, gamma values, margin values, and varying degrees.
 
@@ -117,53 +100,27 @@ For the best performant model, we stuck with using 20 components from the ISOMAP
 
 K-Means clustering classification was one of the techniques we also used to try to predict hand gestures. K-Means is an unsupervised learning method that doesn't take in response labels. Instead, we encoded our labels into numbers (hand gestures from 1-6). The result of building our models and using PCA=2 can be seen below:
 
-$$ $$
 <img src="./images/kmeans_clustering.png" alt="Drawing" style="width: 400px;"/>
-$$ $$
 
 As you can see, we have 6 clusters that are color coded differently. The white X's represent the center of those clusters. We see that the model does a decent job separating the training points. However, one of the challenges we faced here was associating the original hand gesture labels to the clusters; this is because it is an unsupervised model.
 
 ### Gaussian-Mixture Model
 
-We built a Gaussian-Mixture model because with the processed data, we believe that each class of hand gestures could be presented by a unimodal distribution using the top principal components. Our gaussian mixture model for this problem was formulated as the following:
-
-We initialized $\pi_k = 1/m$, $\mu_k = 0$ and $\sum_k$ to be the identify matrix. Then we run the expectation-maximization algorithm below until we maximize the likelihood (convergence)
-
-#### Expectation Step
-
-The expectation step of the model is to calculate the best current probabilities of each data point given D, $\mu$, and $\sigma$.
-
-$$
-t^i_k = p(z^i_k = 1| D,\mu,\sigma) = \frac{\pi_k N(x_i|\mu_k,\sum_k)}{\sum_{k=1}^K\pi_k N(x_i|\mu_k,\sum_k)}
-$$
-
-#### Maximization Step
-
-Then once we finish the expectation step to get the new $t_k^i$ , we update ($\pi_k, \mu_k, \sum_k)$ as follows:
-
-$$
-\pi_k = \frac{\sum_i \tau_k^i}{m}\\
-\mu_k = \frac{\sum_i \tau_k^i x^i}{\sigma_i \tau_k^i} \\
-\sum_k = \frac{\sum_i \tau^i_k (x^i - \mu_k)(x^i - \mu_k)}{\sum_i - \mu_k}
-$$
-
+We built a Gaussian-Mixture model because with the processed data, we believe that each class of hand gestures could be presented by a unimodal distribution using the top principal components. 
 
 The result of formulating and training the model can be seen seen below. On the left hand side, we plot the training data points. On the right hand side, we plot the testing data points. We see that there are 6 round (gaussian distributed) clusters made to cluster the points:
 
-$$ $$
 <table><tr>
 <td> <img src="./images/gmm_training.png" alt="Drawing" style="width: 400px; height:400px"/> </td>
 <td> <img src="./images/gmm_testing.png" alt="Drawing" style="width: 450px; height:400px"/> </td>
 </tr></table>
-$$ $$
 
 ### Naive-Bayes Classifier
 
 We built a Naive-Bayes classifier as well as another model of comparison. One of the assumptions of Naive-Bayes is that the predictors are all independent. Now we know this is clearly not the case with our dataset given that time series data is prone to autocorrelation, and hence each sequential feature is loosely related. We anticipated this model to perform the worst. We formulated the model using the general naive bayes classifer:
 
 * Define the class priors: p(y), which is the likelihood of each hand gesture in the dataset
-* Calculate the posterior probability of the training set using Bayes formula; more specifically given the features how often do they result in each of the classes:
-  * $P(y=i | x) = \frac{P(x|y)P(y)}{P(x)}$
+* Calculate the posterior probability of the training set using Bayes formula; more specifically given the features how often do they result in each of the classes
 * Apply bayes decision rule where the class of the point would be the class with the highest posterior probability $P(y=i|x)$
 * Maximize the likelihood of all the data points being the correct hand gesture
 
@@ -171,15 +128,7 @@ Naive-Bayes is an inherently simple model given all its basic assumptions about 
 
 ### Multinomial Logistic Regression Classifier
 
-Logistic Regression is a probabilistic classification technique that linearly combines features to construct a predictor function. Regression is performed on this function, similar to simple Linear Regression. In order to obtain probabilistic classification, the logistic function transforms this linear function. The generalized logistic function is as follows:
-
-$$ p = \frac{1}{1 + e^x} $$
-
-When this is applied to the multiple classifications and variables, the Multinomial Logistic Regression equation becomes:
-
-$$ P(Y_i = K) = \frac{1}{1 + \sum_{k=1}^{K-1} e^{\beta_k X_i}} $$
-
-where K represents the possible outcomes and must sum to 1. 
+Logistic Regression is a probabilistic classification technique that linearly combines features to construct a predictor function. Regression is performed on this function, similar to simple Linear Regression. In order to obtain probabilistic classification, the logistic function transforms this linear function.
 
 The major assumption for this model is that the data are case specific, where each independent variable has a single value for each case. Unlike Naive-Bayes, the independent variables do not need to be statistically independent from eachother (but the collinearity should be low).
 
